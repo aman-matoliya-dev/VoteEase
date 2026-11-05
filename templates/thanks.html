@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head>
+    <link rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='favicon.png') }}">
 <meta charset="UTF-8">
 <title>Thank You | VoteEase</title>
 
@@ -95,12 +98,17 @@ p {
         Results will be available after the election ends.
     </p>
 
-    <a href="{{ url_for('logout') }}" class="btn btn-exit mt-3">
-        Logout
-    </a>
+    <div class="d-flex flex-wrap justify-content-center gap-2">
+        <a href="{{ url_for('student_profile') }}" class="btn btn-outline-primary mt-3">
+            View Profile
+        </a>
+        <form method="POST" action="{{ url_for('logout') }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-exit mt-3">Logout</button>
+        </form>
+    </div>
 
 </div>
 
 </body>
 </html>
-

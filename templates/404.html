@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='favicon.png') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>404 | VoteEase</title>
+    <meta name="robots" content="noindex">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #f8fafc;
+            color: #334155;
+            font-family: "Nunito", sans-serif;
+            overflow-x: hidden;
+        }
+
+        .page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* NAVBAR */
+
+        .navbar {
+            width: min(1100px, 100%);
+            margin: auto;
+            padding: 22px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #172554;
+            font-family: "Poppins", sans-serif;
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .logo-box {
+            width: 38px;
+            height: 38px;
+            display: grid;
+            place-items: center;
+            border-radius: 11px;
+            color: white;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            box-shadow: 0 8px 18px rgba(99, 102, 241, .22);
+        }
+
+        .logo-box svg {
+            width: 21px;
+        }
+
+        .home-link {
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 800;
+            transition: .2s;
+        }
+
+        .home-link:hover {
+            color: #6366f1;
+        }
+
+        /* CONTENT */
+
+        main {
+            flex: 1;
+            width: min(850px, 100%);
+            margin: auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .oops {
+            margin: 0;
+            font-family: "Poppins", sans-serif;
+            font-size: clamp(3rem, 8vw, 5rem);
+            font-weight: 800;
+            line-height: 1;
+            background: linear-gradient(135deg, #4f46e5, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .subtitle {
+            margin: 10px 0 0;
+            color: #94a3b8;
+            font-family: "Poppins", sans-serif;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* ILLUSTRATION */
+
+        .scene {
+            width: min(620px, 100%);
+            margin: 5px auto;
+        }
+
+        .scene svg {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .float {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .float-slow {
+            animation: float 5s ease-in-out infinite;
+        }
+
+        .wiggle {
+            animation: wiggle 3s ease-in-out infinite;
+            transform-origin: center;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        @keyframes wiggle {
+            0%, 100% {
+                transform: rotate(0);
+            }
+
+            50% {
+                transform: rotate(5deg);
+            }
+        }
+
+        /* TEXT */
+
+        .message {
+            max-width: 500px;
+            margin: -5px auto 0;
+        }
+
+        .message h2 {
+            margin: 0 0 8px;
+            color: #1e293b;
+            font-family: "Poppins", sans-serif;
+            font-size: 1.35rem;
+        }
+
+        .message p {
+            margin: 0;
+            color: #64748b;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        /* BUTTON */
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+            padding: 13px 25px;
+            border-radius: 999px;
+            color: white;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 800;
+            box-shadow: 0 10px 24px rgba(99, 102, 241, .25);
+            transition: .25s;
+        }
+
+        .btn:hover {
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 14px 28px rgba(99, 102, 241, .32);
+        }
+
+        .btn svg {
+            width: 18px;
+        }
+
+        footer {
+            padding: 18px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: .8rem;
+        }
+
+        @media (max-width: 600px) {
+            .navbar {
+                padding: 16px 18px;
+            }
+
+            .logo {
+                font-size: 1.1rem;
+            }
+
+            .logo-box {
+                width: 34px;
+                height: 34px;
+            }
+
+            .home-link {
+                font-size: .85rem;
+            }
+
+            .subtitle {
+                letter-spacing: 2px;
+            }
+
+            .message h2 {
+                font-size: 1.15rem;
+            }
+
+            .message p {
+                font-size: .92rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .float,
+            .float-slow,
+            .wiggle {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="page">
+
+    <!-- VoteEase branding -->
+    <nav class="navbar">
+
+        <a href="{{ url_for('home') }}" class="logo">
+            <span class="logo-box">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <rect x="5" y="4" width="14" height="16" rx="2"
+                          stroke="currentColor" stroke-width="1.8"/>
+                    <path d="m8 12 2.5 2.5L16 9"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"/>
+                </svg>
+            </span>
+            VoteEase
+        </a>
+
+        <a href="{{ url_for('home') }}" class="home-link">
+            Back to Home →
+        </a>
+
+    </nav>
+
+
+    <main>
+
+        <h1 class="oops">Oops!</h1>
+        <div class="subtitle">Page Not Found</div>
+
+
+        <!-- MAIN ILLUSTRATION -->
+
+        <div class="scene">
+
+            <svg viewBox="0 0 620 420"
+                 xmlns="http://www.w3.org/2000/svg">
+
+                <!-- background -->
+                <circle cx="310" cy="215" r="175"
+                        fill="#eef2ff"/>
+
+                <circle cx="105" cy="145" r="28"
+                        fill="#f1f5f9"/>
+
+                <circle cx="525" cy="125" r="22"
+                        fill="#f1f5f9"/>
+
+
+                <!-- decorative dots -->
+
+                <g fill="#c7d2fe">
+                    <circle cx="135" cy="95" r="4"/>
+                    <circle cx="155" cy="78" r="3"/>
+                    <circle cx="490" cy="82" r="4"/>
+                    <circle cx="515" cy="98" r="3"/>
+                </g>
+
+
+                <!-- LEFT LOST BALLOT -->
+
+                <g class="float-slow">
+
+                    <rect x="95" y="190"
+                          width="82"
+                          height="105"
+                          rx="10"
+                          fill="white"
+                          stroke="#dbe4ff"
+                          stroke-width="3"/>
+
+                    <rect x="108" y="207"
+                          width="55"
+                          height="7"
+                          rx="3"
+                          fill="#e0e7ff"/>
+
+                    <rect x="108" y="225"
+                          width="43"
+                          height="6"
+                          rx="3"
+                          fill="#e2e8f0"/>
+
+                    <rect x="108" y="244"
+                          width="55"
+                          height="6"
+                          rx="3"
+                          fill="#e2e8f0"/>
+
+                    <rect x="108" y="263"
+                          width="23"
+                          height="18"
+                          rx="4"
+                          fill="#eef2ff"
+                          stroke="#c7d2fe"/>
+
+                    <path d="m113 272 5 5 9-10"
+                          fill="none"
+                          stroke="#6366f1"
+                          stroke-width="3"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"/>
+
+                </g>
+
+
+                <!-- QUESTION MARK -->
+
+                <g class="wiggle">
+
+                    <circle cx="515" cy="205"
+                            r="37"
+                            fill="white"
+                            stroke="#e0e7ff"
+                            stroke-width="3"/>
+
+                    <text x="515"
+                          y="220"
+                          text-anchor="middle"
+                          font-family="Poppins"
+                          font-size="48"
+                          font-weight="800"
+                          fill="#818cf8">?</text>
+
+                </g>
+
+
+                <!-- ground shadow -->
+
+                <ellipse cx="310" cy="373"
+                         rx="155"
+                         ry="13"
+                         fill="#cbd5e1"
+                         opacity=".45"/>
+
+
+                <!-- 4 -->
+
+                <path d="M175 355
+                         V300
+                         L228 190
+                         H267
+                         V290
+                         H287
+                         V322
+                         H267
+                         V355
+                         H230
+                         V322
+                         H175Z"
+                      fill="#6366f1"/>
+
+                <path d="M204 290
+                         L230 238
+                         V290Z"
+                      fill="#eef2ff"/>
+
+
+                <!-- 0 -->
+
+                <g class="float">
+
+                    <ellipse cx="310" cy="273"
+                             rx="63"
+                             ry="94"
+                             fill="#4f46e5"/>
+
+                    <ellipse cx="310" cy="273"
+                             rx="29"
+                             ry="58"
+                             fill="#eef2ff"/>
+
+                    <!-- ballot paper -->
+
+                    <g class="float-slow">
+
+                        <rect x="282"
+                              y="250"
+                              width="56"
+                              height="68"
+                              rx="5"
+                              fill="white"
+                              stroke="#dbe4ff"
+                              stroke-width="2"/>
+
+                        <rect x="292"
+                              y="261"
+                              width="36"
+                              height="5"
+                              rx="2"
+                              fill="#c7d2fe"/>
+
+                        <rect x="292"
+                              y="275"
+                              width="27"
+                              height="5"
+                              rx="2"
+                              fill="#e2e8f0"/>
+
+                        <rect x="292"
+                              y="289"
+                              width="36"
+                              height="18"
+                              rx="4"
+                              fill="#eef2ff"/>
+
+                        <path d="m299 298 6 5 11-12"
+                              fill="none"
+                              stroke="#6366f1"
+                              stroke-width="3"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"/>
+
+                    </g>
+
+                </g>
+
+
+                <!-- 4 -->
+
+                <path d="M353 355
+                         V300
+                         L406 190
+                         H445
+                         V290
+                         H465
+                         V322
+                         H445
+                         V355
+                         H408
+                         V322
+                         H353Z"
+                      fill="#6366f1"/>
+
+                <path d="M382 290
+                         L408 238
+                         V290Z"
+                      fill="#eef2ff"/>
+
+
+                <!-- BALLOT BOX -->
+
+                <g class="float-slow">
+
+                    <!-- handle -->
+                    <path d="M270 350
+                             C270 327 286 315 310 315
+                             C334 315 350 327 350 350"
+                          fill="none"
+                          stroke="#3730a3"
+                          stroke-width="10"
+                          stroke-linecap="round"/>
+
+                    <!-- box -->
+                    <rect x="258"
+                          y="342"
+                          width="104"
+                          height="55"
+                          rx="9"
+                          fill="#4f46e5"/>
+
+                    <!-- top -->
+                    <rect x="258"
+                          y="342"
+                          width="104"
+                          height="17"
+                          rx="8"
+                          fill="#6366f1"/>
+
+                    <!-- slot -->
+                    <rect x="286"
+                          y="347"
+                          width="48"
+                          height="6"
+                          rx="3"
+                          fill="#312e81"/>
+
+                    <!-- check -->
+                    <path d="m302 375 7 7 15-17"
+                          fill="none"
+                          stroke="white"
+                          stroke-width="4"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"/>
+
+                </g>
+
+
+                <!-- stars -->
+
+                <g fill="#818cf8">
+
+                    <path d="M190 130l4 9 9 4-9 4-4 9-4-9-9-4 9-4z"/>
+
+                    <path d="M430 115l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/>
+
+                    <path d="M530 300l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/>
+
+                </g>
+
+            </svg>
+
+        </div>
+
+
+        <!-- MESSAGE -->
+
+        <section class="message">
+
+            <h2>
+                Looks like this page didn't make the ballot.
+            </h2>
+
+            <p>
+                The page you're looking for may have been moved,
+                removed, or never existed.
+            </p>
+
+            <a href="{{ url_for('home') }}" class="btn">
+
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M19 12H5M11 18l-6-6 6-6"
+                          stroke="currentColor"
+                          stroke-width="2.2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"/>
+                </svg>
+
+                Back to VoteEase
+
+            </a>
+
+        </section>
+
+    </main>
+
+
+    <footer>
+        © 2026 VoteEase · Secure, Simple, One Vote at a Time.
+    </footer>
+
+</div>
+
+</body>
+</html>

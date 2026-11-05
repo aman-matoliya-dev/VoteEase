@@ -1,19 +1,33 @@
 <!doctype html>
 <html lang="en">
 <head>
+    <link rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='favicon.png') }}">
     <meta charset="UTF-8">
     <title>No Active Election</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="bg-light d-flex justify-content-center align-items-center" style="height:100vh;">
+<body class="bg-light" style="min-height:100vh;">
+    <nav class="navbar navbar-expand navbar-dark" style="background-color:#0a192f;">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('vote') }}">VoteEase</a>
+            <div class="d-flex align-items-center gap-3">
+                <a class="nav-link text-light" href="{{ url_for('student_profile') }}">Profile</a>
+                <form method="POST" action="{{ url_for('logout') }}" class="m-0">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-light">Logout</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+    <main class="d-flex justify-content-center align-items-center" style="min-height:80vh;">
     <div class="text-center p-4 shadow rounded bg-white">
         <h2>No Active Election</h2>
         <p class="text-muted">
             There is no active election at the moment.
         </p>
-        <a href="/logout" class="btn btn-primary mt-3">
-            Logout
-        </a>
     </div>
+    </main>
 </body>
 </html>

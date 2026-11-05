@@ -43,6 +43,8 @@ The project is intended for learning and demonstration. It is **not a certified 
 - Select a candidate and submit a vote.
 - Enforce one vote per student per election with a SQLite uniqueness constraint.
 - Show a confirmation page after vote submission.
+- View a personal profile and election participation history without exposing ballot choices.
+- Change a password after verifying the current password.
 - Display the latest election's result after it has ended.
 
 ### 🛠️ Admin workflow
@@ -63,6 +65,7 @@ The project is intended for learning and demonstration. It is **not a certified 
 - Candidate uploads have extension checks, Pillow image verification, filename sanitization, and a 5 MB request-size limit.
 - Responses receive a `Cache-Control: no-store` header.
 - `SECRET_KEY` and `ADMIN_PASS` are read from environment variables.
+- Student password changes increment an account version so other previously authenticated sessions are rejected.
 
 > These are existing safeguards, not a guarantee that the application is fully secure. See [Known limitations](#-known-limitations--next-steps) before deployment.
 
@@ -247,10 +250,14 @@ The project includes a pytest suite using a temporary SQLite database for its te
 
 ```bash
 python -m pip install pytest
-python -m pytest tests/test_app.py -v
+python -m pytest -v
 ```
 
-The current tests cover basic page loading, registration validation, login failures, admin authentication, and a database uniqueness constraint. They do **not** yet provide comprehensive end-to-end or security testing. In particular, candidate/election mismatch, vote timing boundaries, tie handling, and admin actions against completed elections need dedicated tests.
+The tests cover the student profile, password changes, participation history, admin student-list actions, and existing voting behavior. Test database changes are isolated to temporary SQLite files.
+
+### Student profile data migration
+
+The app's idempotent `init_db()` adds nullable `name` and `email` fields, plus a password-version field, to an existing `students` table. The admin dashboard does not manage student names or email addresses; existing values remain stored and may be displayed on the student profile. The current schema does not track account status, so the profile reports that status is unavailable. The migration does not alter or delete student or vote records.
 
 ## 🌐 Deployment Notes
 

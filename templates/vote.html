@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='favicon.png') }}">
 <meta charset="UTF-8">
 <title>Vote | {{ election.name }}</title>
 
@@ -63,6 +66,18 @@ body {
 </head>
 
 <body>
+<nav class="navbar navbar-expand navbar-dark" style="background-color:#0a192f;">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="{{ url_for('vote') }}">VoteEase</a>
+    <div class="d-flex align-items-center gap-3">
+      <a class="nav-link text-light" href="{{ url_for('student_profile') }}">Profile</a>
+      <form method="POST" action="{{ url_for('logout') }}" class="m-0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-outline-light">Logout</button>
+      </form>
+    </div>
+  </div>
+</nav>
 <div class="container py-4">
 
 <div class="text-center mb-3">
@@ -117,10 +132,6 @@ body {
 
 {% endif %}
 
-<div class="text-center mt-4">
-  <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">Logout</a>
-</div>
-
 </div>
 
 <script>
@@ -159,11 +170,12 @@ setInterval(()=>{
   const left = endTime - now;
 
   if(left <= 0){
-    timeText.innerText = "00:00";
-    fill.style.width = "0%";
-    location.reload();
-    return;
-  }
+  timeText.innerText = "00:00";
+  fill.style.width = "0%";
+
+  window.location.href = "{{ url_for('results') }}";
+  return;
+}
 
   const m = Math.floor(left/60000);
   const s = Math.floor((left%60000)/1000);

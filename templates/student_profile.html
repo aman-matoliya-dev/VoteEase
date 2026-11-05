@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png"
+        href="{{ url_for('static', filename='favicon.png') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Profile | VoteEase</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/password-toggle.css') }}">
+  <script defer src="{{ url_for('static', filename='js/password-toggle.js') }}"></script>
+  <style>
+    body { background: #ede9fe; font-family: 'Poppins', sans-serif; }
+    .student-nav { background: #0a192f; }
+    .profile-card { border: 0; border-radius: 18px; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand student-nav navbar-dark">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="{{ url_for('vote') }}">VoteEase</a>
+    <div class="d-flex align-items-center gap-3">
+      <a class="nav-link text-light" href="{{ url_for('vote') }}">Dashboard</a>
+      <span class="nav-link text-white fw-semibold" aria-current="page">Profile</span>
+      <form method="POST" action="{{ url_for('logout') }}" class="m-0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-outline-light">Logout</button>
+      </form>
+    </div>
+  </div>
+</nav>
+
+<main class="container py-4 py-md-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+      <h1 class="h2 fw-bold mb-1">Student Profile</h1>
+      <p class="text-muted mb-0">View your account details, security settings, and election activity.</p>
+    </div>
+    <a class="btn btn-outline-primary" href="{{ url_for('vote') }}">Return to dashboard</a>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <section class="card profile-card shadow-sm mb-4" aria-labelledby="personal-info-heading">
+    <div class="card-body p-4">
+      <h2 class="h4 fw-semibold mb-3" id="personal-info-heading">Personal Information</h2>
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Student name</dt>
+        <dd class="col-sm-8">{{ student.name or 'Not recorded' }}</dd>
+
+        <dt class="col-sm-4">College roll number</dt>
+        <dd class="col-sm-8">{{ student.college_id }}</dd>
+
+        <dt class="col-sm-4">Registered email</dt>
+        <dd class="col-sm-8">{{ student.email or 'Not recorded' }}</dd>
+
+        <dt class="col-sm-4">Account status</dt>
+        <dd class="col-sm-8">Not tracked by this application</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="card profile-card shadow-sm mb-4" aria-labelledby="security-heading">
+    <div class="card-body p-4">
+      <h2 class="h4 fw-semibold mb-2" id="security-heading">Account Security</h2>
+      <p class="text-muted">Choose a password with at least 12 characters, including a letter and a number.</p>
+      <form method="POST" action="{{ url_for('student_profile') }}" autocomplete="off">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-3">
+          <div class="col-12">
+            <label for="current-password" class="form-label">Current password</label>
+            <div class="password-field">
+              <input id="current-password" name="current_password" type="password"
+                     class="form-control" autocomplete="current-password" required>
+              <button class="password-toggle" type="button" aria-label="Show password"
+                      aria-pressed="false" aria-controls="current-password">
+                <svg class="password-toggle__eye-off" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 3l18 18"></path>
+                  <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path>
+                  <path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c5 0 8.3 4.5 9 7-.3 1-1 2.1-2 3.1"></path>
+                  <path d="M6.2 6.2C3.9 7.6 2.5 9.7 2 12c.7 2.5 4 7 10 7 1 0 1.9-.2 2.8-.5"></path>
+                </svg>
+                <svg class="password-toggle__eye" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true" hidden>
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label for="new-password" class="form-label">New password</label>
+            <div class="password-field">
+              <input id="new-password" name="new_password" type="password"
+                     class="form-control" minlength="12" autocomplete="new-password" required>
+              <button class="password-toggle" type="button" aria-label="Show password"
+                      aria-pressed="false" aria-controls="new-password">
+                <svg class="password-toggle__eye-off" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 3l18 18"></path>
+                  <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path>
+                  <path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c5 0 8.3 4.5 9 7-.3 1-1 2.1-2 3.1"></path>
+                  <path d="M6.2 6.2C3.9 7.6 2.5 9.7 2 12c.7 2.5 4 7 10 7 1 0 1.9-.2 2.8-.5"></path>
+                </svg>
+                <svg class="password-toggle__eye" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true" hidden>
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label for="confirm-password" class="form-label">Confirm new password</label>
+            <div class="password-field">
+              <input id="confirm-password" name="confirm_password" type="password"
+                     class="form-control" minlength="12" autocomplete="new-password" required>
+              <button class="password-toggle" type="button" aria-label="Show password"
+                      aria-pressed="false" aria-controls="confirm-password">
+                <svg class="password-toggle__eye-off" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 3l18 18"></path>
+                  <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path>
+                  <path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c5 0 8.3 4.5 9 7-.3 1-1 2.1-2 3.1"></path>
+                  <path d="M6.2 6.2C3.9 7.6 2.5 9.7 2 12c.7 2.5 4 7 10 7 1 0 1.9-.2 2.8-.5"></path>
+                </svg>
+                <svg class="password-toggle__eye" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true" hidden>
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary">Change password</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="card profile-card shadow-sm" aria-labelledby="activity-heading">
+    <div class="card-body p-4">
+      <h2 class="h4 fw-semibold mb-3" id="activity-heading">Election Activity</h2>
+      <p class="text-muted">This history shows participation only and never includes ballot choices.</p>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Election</th>
+              <th scope="col">Election period</th>
+              <th scope="col">Status</th>
+              <th scope="col">Participation</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for election in elections %}
+              <tr>
+                <td>{{ election.name }}</td>
+                <td>
+                  <div>{{ election.period_lines[0] }}</div>
+                  {% if election.period_lines[1] %}
+                    <div>{{ election.period_lines[1] }}</div>
+                  {% endif %}
+                </td>
+                <td>{{ election.election_status }}</td>
+                <td>
+                  {% if election.participation_status == 'Voted' %}
+                    <span class="badge text-bg-success">Voted</span>
+                  {% else %}
+                    <span class="badge text-bg-secondary">Not Participated</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-4">No elections are recorded yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

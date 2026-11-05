@@ -1,3 +1,6 @@
+import hmac
+import re
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_wtf import CSRFProtect
 from utils.db import get_conn
@@ -20,6 +23,17 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax"
 )
 ADMIN_PASS = os.environ.get("ADMIN_PASS")  # override this in production!
+
+
+def _validate_admin_password_config(password):
+    if password is None or not password.strip():
+        raise RuntimeError(
+            "ADMIN_PASS must be configured with a non-empty, non-whitespace value."
+        )
+    return password
+
+
+ADMIN_PASS = _validate_admin_password_config(ADMIN_PASS)
 
 # ---------------- CSRF ----------------
 csrf = CSRFProtect(app)
@@ -48,6 +62,83 @@ def rows_to_dicts(rows):
     return [dict(r) for r in rows]
 
 
+def format_profile_election_period(start_value, end_value):
+    def parse_datetime(value):
+        if not isinstance(value, str) or not value:
+            return None
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            return None
+
+    def format_date(value):
+        return f"{value.day} {value:%b %Y}"
+
+    def format_time(value):
+        return value.strftime("%I:%M %p").lstrip("0")
+
+    def format_datetime(value):
+        return f"{format_date(value)}, {format_time(value)}"
+
+    start = parse_datetime(start_value)
+    end = parse_datetime(end_value)
+
+    if start and end and start.date() == end.date():
+        return (
+            format_date(start),
+            f"{format_time(start)} – {format_time(end)}",
+        )
+
+    return (
+        format_datetime(start) if start else "Date not set",
+        f"– {format_datetime(end)}" if end else None,
+    )
+
+
+def get_authenticated_student():
+    if session.get("admin") is True:
+        return None
+
+    session_student = session.get("student")
+    if not isinstance(session_student, dict):
+        return None
+
+    student_id = session_student.get("id")
+    if type(student_id) is not int:
+        session.clear()
+        return None
+
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, college_id, name, email, password_version
+            FROM students
+            WHERE id = ?
+            """,
+            (student_id,),
+        )
+        student = cur.fetchone()
+    finally:
+        conn.close()
+
+    if student is None:
+        session.clear()
+        return None
+
+    session_version = session_student.get("password_version", 0)
+    if (
+        type(session_version) is not int
+        or session_version != student["password_version"]
+    ):
+        session.clear()
+        return None
+
+    return dict(student)
+
+
 def expire_elections():
     conn = get_conn()
     cur = conn.cursor()
@@ -68,7 +159,7 @@ def after_request(response):
 
 
 # ---------------- LOGOUT ----------------
-@app.route("/logout")
+@app.route("/logout", methods=["POST"])
 def logout():
     session.clear()
     return redirect(url_for("login"))
@@ -79,10 +170,15 @@ def init_db():
     conn = get_conn()
     cur = conn.cursor()
     cur.executescript("""
+    PRAGMA foreign_keys = ON;
+
     CREATE TABLE IF NOT EXISTS students (
         id INTEGER PRIMARY KEY,
         college_id TEXT UNIQUE,
-        password_hash TEXT
+        password_hash TEXT,
+        name TEXT,
+        email TEXT,
+        password_version INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS elections (
@@ -95,20 +191,37 @@ def init_db():
 
     CREATE TABLE IF NOT EXISTS candidates (
         id INTEGER PRIMARY KEY,
-        election_id INTEGER,
+        election_id INTEGER NOT NULL,
         name TEXT,
-        photo TEXT
+        photo TEXT,
+        UNIQUE(election_id, id),
+        FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS votes (
         id INTEGER PRIMARY KEY,
-        election_id INTEGER,
-        student_id INTEGER,
-        candidate_id INTEGER,
+        election_id INTEGER NOT NULL,
+        student_id INTEGER NOT NULL,
+        candidate_id INTEGER NOT NULL,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(election_id, student_id)
+        UNIQUE(election_id, student_id),
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE,
+        FOREIGN KEY (election_id, candidate_id) REFERENCES candidates(election_id, id) ON DELETE CASCADE
     );
     """)
+
+    student_columns = {
+        row[1] for row in cur.execute("PRAGMA table_info(students)").fetchall()
+    }
+    for column, definition in (
+        ("name", "TEXT"),
+        ("email", "TEXT"),
+        ("password_version", "INTEGER NOT NULL DEFAULT 0"),
+    ):
+        if column not in student_columns:
+            cur.execute(f"ALTER TABLE students ADD COLUMN {column} {definition}")
+
     conn.commit()
     conn.close()
 
@@ -198,7 +311,14 @@ def login():
         conn = get_conn()
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
-        cur.execute("SELECT * FROM students WHERE college_id=?", (cid,))
+        cur.execute(
+            """
+            SELECT id, college_id, password_hash, password_version
+            FROM students
+            WHERE college_id = ?
+            """,
+            (cid,),
+        )
         student = row_to_dict(cur.fetchone())
         conn.close()
 
@@ -207,7 +327,11 @@ def login():
             return redirect(url_for("login"))
 
         session.clear()
-        session["student"] = {"id": student["id"], "college_id": cid}
+        session["student"] = {
+            "id": student["id"],
+            "college_id": cid,
+            "password_version": student["password_version"],
+        }
         return redirect(url_for("vote"))
 
     return render_template("login.html")
@@ -216,12 +340,13 @@ def login():
 # ---------------- VOTE ----------------
 @app.route("/vote", methods=["GET", "POST"])
 def vote():
-    if "student" not in session:
+    student = get_authenticated_student()
+    if student is None:
         return redirect(url_for("login"))
 
     expire_elections()
 
-    sid = session["student"]["id"]
+    sid = student["id"]
     now = datetime.now().isoformat()
 
     conn = get_conn()
@@ -231,13 +356,15 @@ def vote():
     cur.execute("""
         SELECT * FROM elections
         WHERE is_active=1 AND start_time<=? AND end_time>=?
-        LIMIT 1
+        ORDER BY id
     """, (now, now))
-    election = row_to_dict(cur.fetchone())
+    active_elections = [row_to_dict(r) for r in cur.fetchall()]
 
-    if not election:
+    if len(active_elections) != 1:
         conn.close()
         return render_template("election.html")
+
+    election = active_elections[0]
 
     cur.execute(
         "SELECT 1 FROM votes WHERE election_id=? AND student_id=?",
@@ -256,6 +383,19 @@ def vote():
             flash("Please select a candidate", "danger")
             return redirect(url_for("vote"))
 
+        cur.execute(
+            """
+            SELECT 1
+            FROM candidates
+            WHERE id = ? AND election_id = ?
+            """,
+            (candidate_id, election["id"]),
+        )
+        if cur.fetchone() is None:
+            conn.close()
+            flash("Invalid candidate selection", "danger")
+            return redirect(url_for("vote"))
+
         try:
             cur.execute(
                 "INSERT INTO votes (election_id,student_id,candidate_id) VALUES (?,?,?)",
@@ -263,9 +403,19 @@ def vote():
             )
             conn.commit()
         except sqlite3.IntegrityError:
-            # Race condition: another request already recorded this student's vote.
-            conn.close()
-            return redirect(url_for("thanks"))
+            conn.rollback()
+            try:
+                cur.execute(
+                    "SELECT 1 FROM votes WHERE election_id=? AND student_id=?",
+                    (election["id"], sid),
+                )
+                duplicate_vote = cur.fetchone() is not None
+            finally:
+                conn.close()
+
+            if duplicate_vote:
+                return redirect(url_for("thanks"))
+            raise
 
         conn.close()
         return redirect(url_for("thanks"))
@@ -280,6 +430,135 @@ def vote():
         candidates=candidates,
         has_voted=has_voted,
         end_time=election["end_time"]
+    )
+
+
+# ---------------- STUDENT PROFILE ----------------
+@app.route("/student/profile", methods=["GET", "POST"])
+def student_profile():
+    student = get_authenticated_student()
+    if student is None:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        current_password = request.form.get("current_password", "")
+        new_password = request.form.get("new_password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not current_password or not new_password or not confirm_password:
+            flash("All password fields are required.", "danger")
+            return redirect(url_for("student_profile"))
+
+        if new_password != confirm_password:
+            flash("New passwords do not match.", "danger")
+            return redirect(url_for("student_profile"))
+
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT password_hash FROM students WHERE id = ?",
+                (student["id"],),
+            )
+            row = cur.fetchone()
+            if row is None:
+                session.clear()
+                return redirect(url_for("login"))
+
+            if not verify_password(row[0], current_password):
+                flash("Current password is incorrect.", "danger")
+                return redirect(url_for("student_profile"))
+
+            if new_password == current_password:
+                flash("New password must be different from the current password.", "danger")
+                return redirect(url_for("student_profile"))
+
+            if (
+                len(new_password) < 12
+                or not re.search(r"[A-Za-z]", new_password)
+                or not re.search(r"\d", new_password)
+            ):
+                flash(
+                    "New password must be at least 12 characters and include "
+                    "at least one letter and one number.",
+                    "danger",
+                )
+                return redirect(url_for("student_profile"))
+
+            cur.execute(
+                """
+                UPDATE students
+                SET password_hash = ?, password_version = password_version + 1
+                WHERE id = ? AND password_hash = ? AND password_version = ?
+                """,
+                (
+                    hash_password(new_password),
+                    student["id"],
+                    row[0],
+                    student["password_version"],
+                ),
+            )
+            if cur.rowcount != 1:
+                conn.rollback()
+                flash("Password could not be updated. Please try again.", "danger")
+                return redirect(url_for("student_profile"))
+            conn.commit()
+        finally:
+            conn.close()
+
+        session["student"]["password_version"] = student["password_version"] + 1
+        flash("Your password was changed successfully.", "success")
+        return redirect(url_for("student_profile"))
+
+    now = datetime.now().isoformat()
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT
+                e.name,
+                e.start_time,
+                e.end_time,
+                CASE
+                    WHEN e.is_active = 1
+                         AND e.start_time <= ?
+                         AND e.end_time >= ?
+                        THEN 'Active'
+                    WHEN e.is_active = 0
+                         OR (e.end_time IS NOT NULL AND e.end_time < ?)
+                        THEN 'Completed'
+                    ELSE 'Upcoming'
+                END AS election_status,
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM votes AS v
+                        WHERE v.election_id = e.id
+                          AND v.student_id = ?
+                    )
+                        THEN 'Voted'
+                    ELSE 'Not Participated'
+                END AS participation_status
+            FROM elections AS e
+            ORDER BY e.start_time DESC, e.id DESC
+            """,
+            (now, now, now, student["id"]),
+        )
+        elections = rows_to_dicts(cur.fetchall())
+        for election in elections:
+            election["period_lines"] = format_profile_election_period(
+                election["start_time"],
+                election["end_time"],
+            )
+    finally:
+        conn.close()
+
+    return render_template(
+        "student_profile.html",
+        student=student,
+        elections=elections,
     )
 
 
@@ -334,7 +613,8 @@ def results():
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     if request.method == "POST" and "admin_login" in request.form:
-        if request.form["password"] == ADMIN_PASS:
+        password = request.form.get("password", "")
+        if password.strip() and hmac.compare_digest(password, ADMIN_PASS):
             session.clear()
             session["admin"] = True
             return redirect(url_for("admin"))
@@ -411,7 +691,6 @@ def admin():
 
     votes_cast = 0
     candidates = []
-    students = []
 
     if election:
         cur.execute("SELECT COUNT(*) FROM votes WHERE election_id=?", (election["id"],))
@@ -427,15 +706,20 @@ def admin():
         """, (election["id"],))
         candidates = rows_to_dicts(cur.fetchall())
 
-        cur.execute("""
-            SELECT s.college_id,
-                   CASE WHEN v.id IS NOT NULL THEN 1 ELSE 0 END AS has_voted
-            FROM students s
-            LEFT JOIN votes v
-              ON s.id = v.student_id AND v.election_id = ?
-            ORDER BY s.college_id
-        """, (election["id"],))
-        students = rows_to_dicts(cur.fetchall())
+    cur.execute(
+        """
+        SELECT
+            s.id,
+            s.college_id,
+            CASE WHEN v.student_id IS NOT NULL THEN 1 ELSE 0 END AS has_voted
+        FROM students AS s
+        LEFT JOIN votes AS v
+          ON s.id = v.student_id AND v.election_id = ?
+        ORDER BY s.college_id
+        """,
+        (election["id"] if election else None,),
+    )
+    students = rows_to_dicts(cur.fetchall())
 
     conn.close()
 
@@ -504,14 +788,19 @@ Sitemap: https://aman5.pythonanywhere.com/sitemap.xml
 @app.route("/sitemap.xml")
 def sitemap_xml():
     content = """<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <url>
-        <loc>https://aman5.pythonanywhere.com/</loc>
-    </url>
-</urlset>
-"""
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+        <url>
+            <loc>https://aman5.pythonanywhere.com/</loc>
+        </url>
+    </urlset>
+    """
     return app.response_class(content, mimetype="application/xml")
 
+
+# ---------------- 404 ERROR ----------------
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template("404.html"), 404
 
 
 @app.route("/googlec246928b39a849e4.html")
